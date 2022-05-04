@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Blog;
 using Blog.Data;
 using Blog.Services;
@@ -57,6 +58,11 @@ void ConfigureMvc(WebApplicationBuilder builder)
         .ConfigureApiBehaviorOptions(options =>
         {
             options.SuppressModelStateInvalidFilter = true;
+        }).AddJsonOptions(x=>
+        {
+            x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;//ignora os nós pegando o primeiro, ignora outros ciclos
+            //quando tiver um objeto nulo, ele não vai renderizar na tela
+            x.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
         });
 }
 

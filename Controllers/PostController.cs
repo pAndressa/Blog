@@ -1,4 +1,5 @@
 using Blog.Data;
+using Blog.ViewModels;
 using Blog.ViewModels.Posts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,25 +11,47 @@ namespace Blog.Controllers
     {
         [HttpGet("v1/posts")]
         public async Task<IActionResult> GetAsync(
-            [FromServices] BlogDataContext context
+            [FromServices] BlogDataContext context,
+            [FromQuery] int page = 0,
+            [FromQuery] int pageSize = 25
         )
         {
-            var posts = await context
-                .Posts
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Include(x => x.Author)
-                .Select(x => new ListPostViewModel
-                {
-                    Id = x.Id,
-                    Title = x.Title,
-                    Slug = x.Slug,
-                    LastUpdateDate = x.LastUpdateDate,
-                    Category = x.Category.Name,
-                    Author = $"{x.Author.Name} ({x.Author.Email})"
-                })
-                .ToListAsync();
-            return Ok(posts);
+            try
+            {
+                var count = await context.Posts.AsNoTracking().CountAsync();
+                var posts = await context
+                    .Posts
+                    .AsNoTracking()
+                    .Include(x => x.Category)
+                    .Include(x => x.Author)
+                    .Select(x => new ListPostViewModel
+                    {
+                        Id = x.Id,
+                        Title = x.Title,
+                        Slug = x.Slug,
+                        LastUpdateDate = x.LastUpdateDate,
+                        Category = x.Category.Name,
+                        Author = $"{x.Author.Name} ({x.Author.Email})"
+                    })
+                    .Skip(page * pageSize)//paginação
+                    .Take(pageSize)
+                    .OrderByDescending(x => x.LastUpdateDate)
+                    .ToListAsync();
+
+                return Ok(new ResultViewModel<dynamic>(new
+                    {
+                        total = count,
+                        page,
+                        pageSize,
+                        posts
+                    }
+                )); 
+            }
+            catch (System.Exception)
+            {
+               return StatusCode(500, new ResultViewModel<List<Post>>("05x04 - Falha interna"));
+            }
+            
         }  
     }
 }
