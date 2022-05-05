@@ -69,7 +69,7 @@ namespace Blog.Controllers
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
                     return GetCategories(context);
                 })
-                return Ok(new ResultViewModel<List<Category>(categories));
+                return Ok(new ResultViewModel<List<Category>>(categories));
             }
             catch(DbUpdateException ex)
             {
