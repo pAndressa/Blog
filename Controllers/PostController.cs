@@ -1,4 +1,5 @@
 using Blog.Data;
+using Blog.Models;
 using Blog.ViewModels;
 using Blog.ViewModels.Posts;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,32 @@ namespace Blog.Controllers
                return StatusCode(500, new ResultViewModel<List<Post>>("05x04 - Falha interna"));
             }
             
-        }  
+        }
+
+        [HttpGet("v1/posts/{id:int}")] 
+        public async Task<IActionResult> DetailsAsync(
+            [FromServices] BlogDataContext context,
+            [FromRoute]int id )
+        {
+            try
+            {
+                var post = await context
+                                .Posts
+                                .AsNoTracking()
+                                .Include(x => x.Author)
+                                .ThenInclude(x => x.Roles)
+                                .Include(x => x.Category)
+                                .FirstOrDefaultAsync(x => x.Id == id);
+                
+                if(post == null)
+                return NotFound(new ResultViewModel<Post>("Conteúdo não encontrado"));
+
+                return Ok(new ResultViewModel<Post>(post));
+            }
+            catch (System.Exception)
+            {
+                return StatusCode(500, new ResultViewModel<List<Category>>("05x04 Falha interna"));
+            }
+        } 
     }
 }

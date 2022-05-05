@@ -5,6 +5,7 @@ using Blog.ViewModels;
 using Blog.ViewModels.Categories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Blog.Controllers
 {
@@ -54,6 +55,7 @@ namespace Blog.Controllers
         [HttpPost("v1/categories")]
         public async Task<IActionResult> PostAsync(
             [FromBody] EditorCategoryViewModel model,
+            [FromServices]IMemoryCache cache,
             [FromServices]BlogDataContext context
         )
         {
@@ -62,17 +64,12 @@ namespace Blog.Controllers
 
             try
             {
-                var category = new Category
+                var categories = cache.GetOrCreate("CategoriesCache", entry =>
                 {
-                    Id = 0,
-                    Name = model.Name,
-                    Slug = model.Slug.ToLower()
-                };
-
-                await context.Categories.AddAsync(category);
-                await context.SaveChangesAsync();
-
-                return Created($"v1/categories/{category.Id}", new ResultViewModel<Category>(category));
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                    return GetCategories(context);
+                })
+                return Ok(new ResultViewModel<List<Category>(categories));
             }
             catch(DbUpdateException ex)
             {
@@ -82,6 +79,11 @@ namespace Blog.Controllers
             {
                 return StatusCode(500, new ResultViewModel<Category>("05EXE10 - Falha interna no servidor"));
             }
+        }
+
+        private List<Category> GetCategories(BlogDataContext context)
+        {
+            return context.Categories.ToList();
         }
 
         [HttpPut("v1/categories/{id:int}")]
